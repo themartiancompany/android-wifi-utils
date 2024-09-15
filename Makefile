@@ -22,6 +22,7 @@ install: install-scripts install-doc
 install-scripts:
 
 	install -vDm 755 "$(_PROJECT)/wifi-tethering-status" "$(BIN_DIR)/wifi-tethering-status"
+	install -vDm 755 "$(_PROJECT)/android-bssid-scan" "$(BIN_DIR)/android-bssid-scan"
 
 install-doc:
 

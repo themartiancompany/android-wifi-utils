@@ -21,18 +21,14 @@ _global_variables() {
 }
 
 _requirements() {
-  local \
-    _os
-  _os="$( \
-    uname \
-      -o)"
   _check_cmd \
-    'iw'
-  if [[ "${_os}" == "Android" ]]; then
-    _check_cmd \
-      'sudo' \
-      'tsu'
-  fi
+    'iw-bssid-scan' \
+    'iw-tools'
+  _check_cmd \
+    "wifi-tethering-status"
+  _check_cmd \
+    'sudo' \
+    'tsu'
 }
 
 _dumpsys() {
@@ -46,60 +42,91 @@ _dumpsys() {
     "${_cmd[@]}"
 }
 
-_dumpsys_parse() {
+_bssids_get() {
+  local \
+    _device="${1}" \
+    _associated_only="${2}" \
+    _bssids=() \
+    _iw_bssid_scan_opts=() \
+    _tethering
+  if [[ "${_associated_only}" == "y" ]]; then
+    _iw_bssid_scan_opts+=(
+      -a
+    )
+  fi
+  _bssids=( $( \
+    iw-bssid-scan \
+      "${_iw_bssid_scan_opts[@]}" \
+      "${_device}")
+  )
+  if [[ "${_bssids[*]}" == "" ]]; then
+    _tethering="$( \
+      wifi-tethering-status)"
+    if [[ "${_tethering}" == "enabled" ]]; then
+      echo "we"
+    fi
+  fi
+  echo \
+    "${_bssids[@]}"
+}
+
+_tethering_bssid_get() {
   local \
     _dumpsys_out="${1}" \
-    _tethered_hotspot \
-    _status \
-    _enabled
-  _tethered_hotspot="$( \
-    echo \
-      "${_dumpsys_out}" | \
-      sed \
-        -n \
-        "/^TetheredHotspot: tid=/p")"
-  if [[ "${_tethered_hotspot}" != "" ]]; then
-    _msg_info \
-      "dumpsys: ${_tethered_hotspot}"
-    _enabled="$( \
-      echo \
-        "${_tethered_hotspot}" | \
-        awk \
-          '{print $6}' | \
-          awk \
-            -F \
-              "=" \
-            '{print $2}')"
-    if [[ "${_enabled}" == "true" ]]; then
-      _status="enabled"
-    fi
-  else
-    _status="disabled"
-  fi 
+    _bsss=() \
+    _bsss_lines
   echo \
-    "${_status}"
+    ciao
+  # _bsss_lines="$( \
+  #   echo \
+  #     "${_dumpsys_out}" | \
+  #     sed \
+  #       -n \
+  #       "/^BSS /p")"
+  # if [[ "${_associated_only}" == "y" ]]; then
+  #   _bsss_lines="$( \
+  #     echo \
+  #       "${_bsss_lines}" | \
+  #       grep \
+  #         "associated")"
+  # fi
+  # _bsss=(  $( \
+  #   echo \
+  #     "${_bsss_lines}" | \
+  #     awk \
+  #       '{print $2}' | \
+  #       awk \
+  #         -F \
+  #           "(" \
+  #         '{print $1}')
+  # )
+  # echo \
+  #   "${_bsss[*]}"
 }
 
-_wifi_tethering_status_get() {
+_android_bssid_scan() {
   local \
-    _dumpsys_out
-  _dumpsys_out="$( \
-    _dumpsys)"
-  if [[ "${_dumpsys_out}" != "" ]]; then
-    _dumpsys_parse \
-      "${_dumpsys_out}"
-  else
-    _msg_error \
-      "empty dumpsys!" \
-      1
-  fi
-}
-
-_wifi_tethering_status() {
-  _wifi_tethering_status_get
+    _device="${1}" \
+    _associated_only="${2}" \
+    _cmd=()
+ _bssids=( $( \
+   _bssids_get \
+    "${_device}" \
+    "${_associated_only}")
+  )
+  echo \
+    "${_bssids[@]}"
 }
 
 _set_overrides() {
+  _set_override \
+    "target" \
+    "device" \
+    "wlan0"
+  _set_override \
+    "associated" \
+    "only" \
+    "n"
   if [[ -v override_quiet ]]; then
     quiet="${override_quiet}"
   elif [[ -z "${quiet}" ]]; then
@@ -123,12 +150,17 @@ _usage() {
       -d '' \
       _usage_text << \
         ENDUSAGETEXT || true
-Returns wifi tethering status
+Returns visible BSSIDs
 
 Usage:
   $(_get "app" "name")
 
   options:
+     -d                   Target wireless device name.
+                          Default: '$(_get "target" "device")'
+     -a                   Get only associated bssid.
+                          Default: '$(_get "associated" "only")'
+
      -h                   This message.
      -c                   Enable color output
      -v                   Enable verbose output
@@ -165,6 +197,8 @@ _show_config() {
     "${SOURCE_DATE_EPOCH}"
   _msg_info "${app_name} configuration"
   _msg_info "                Call date:   $(_get "_call" "date")"
+  _msg_info "            Target device:   $(_get "target" "device")"
+  _msg_info "          Associated only:   $(_get "associated" "only")"
 }
 
 _globals
@@ -177,10 +211,12 @@ _config_user_init \
 # shellcheck disable=SC2034
 while \
   getopts \
-    'cvh?' \
+    'd:acvh?' \
     arg; do
   case \
     "${arg}" in
+    d) override_target_device="${OPTARG}" ;;
+    a) override_associated_only="y" ;;
     c) override_color="y" ;;
     v) override_quiet="n" ;;
     h|?) _set_overrides && \
@@ -207,8 +243,16 @@ _config_user_init \
       "name")"
 _show_config
 app_opts=(
+  "$( \
+    _get \
+      "target" \
+      "device")"
+  "$( \
+    _get \
+      "associated" \
+      "only")"
 )
-_wifi_tethering_status \
+_android_bssid_scan \
   "${app_opts[@]}"
 
 # vim:set sw=2 sts=-1 et:
