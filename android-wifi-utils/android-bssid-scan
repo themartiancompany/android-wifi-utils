@@ -80,33 +80,27 @@ _tethering_bssid_get() {
     _bssid_line \
     _pattern \
     _dumpsys_out
-  _pattern="mCurrentSoftApConfiguration: ssid = " 
+  _pattern="mCurrentSoftApInfoMap"
   _dumpsys_out="$( \
     _dumpsys)"
-  _wifi_tethering_conf_line="$( \
+  _bssid_line="$( \
     echo \
       "${_dumpsys_out}" | \
       grep \
-        -n \
-        "${_pattern}" | \
-      awk \
-        -F \
-          ":" \
-        '{print $1}')" 
-  _bssid_line="$(( \
-    "${_wifi_tethering_conf_line}" + \
-    1))"
+        "${_pattern}")" 
   _bssid="$( \
     echo \
-      "${_dumpsys_out}" | \
-      head \
-        -n \
-        "${_bssid_line}" | \
-        tail \
-          -n \
-          1 | \
+      "${_bssid_line}" | \
+      awk \
+        '{print $5}' | \
+        awk \
+          -F \
+            "=" \
+          '{print $2}' | \
           awk \
-            '{print $3}')"
+            -F \
+              "," \
+            '{print $1}')"
   _bsss=(
     "${_bssid}"
   )
