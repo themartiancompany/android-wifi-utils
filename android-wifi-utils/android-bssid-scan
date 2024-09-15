@@ -54,7 +54,7 @@ _bssids_get() {
       -a
     )
   fi
-  _bssids=( $( \
+  _bssids+=( $( \
     iw-bssid-scan \
       "${_iw_bssid_scan_opts[@]}" \
       "${_device}")
@@ -63,7 +63,9 @@ _bssids_get() {
     _tethering="$( \
       wifi-tethering-status)"
     if [[ "${_tethering}" == "enabled" ]]; then
-      echo "we"
+      _bssids+=( $( \
+        _tethering_bssid_get)
+      )
     fi
   fi
   echo \
@@ -72,36 +74,44 @@ _bssids_get() {
 
 _tethering_bssid_get() {
   local \
-    _dumpsys_out="${1}" \
     _bsss=() \
-    _bsss_lines
+    _wifi_tethering_conf_line \
+    _bssid \
+    _bssid_line \
+    _pattern \
+    _dumpsys_out
+  _pattern="mCurrentSoftApConfiguration: ssid = " 
+  _dumpsys_out="$( \
+    _dumpsys)"
+  _wifi_tethering_conf_line="$( \
+    echo \
+      "${_dumpsys_out}" | \
+      grep \
+        -n \
+        "${_pattern}" | \
+      awk \
+        -F \
+          ":" \
+        '{print $1}')" 
+  _bssid_line="$(( \
+    "${_wifi_tethering_conf_line}" + \
+    1))"
+  _bssid="$( \
+    echo \
+      "${_dumpsys_out}" | \
+      head \
+        -n \
+        "${_bssid_line}" | \
+        tail \
+          -n \
+          1 | \
+          awk \
+            '{print $3}')"
+  _bsss=(
+    "${_bssid}"
+  )
   echo \
-    ciao
-  # _bsss_lines="$( \
-  #   echo \
-  #     "${_dumpsys_out}" | \
-  #     sed \
-  #       -n \
-  #       "/^BSS /p")"
-  # if [[ "${_associated_only}" == "y" ]]; then
-  #   _bsss_lines="$( \
-  #     echo \
-  #       "${_bsss_lines}" | \
-  #       grep \
-  #         "associated")"
-  # fi
-  # _bsss=(  $( \
-  #   echo \
-  #     "${_bsss_lines}" | \
-  #     awk \
-  #       '{print $2}' | \
-  #       awk \
-  #         -F \
-  #           "(" \
-  #         '{print $1}')
-  # )
-  # echo \
-  #   "${_bsss[*]}"
+    "${_bsss[*]}"
 }
 
 _android_bssid_scan() {
@@ -143,6 +153,7 @@ _set_overrides() {
 # $1: exit status number.
 _usage() {
   local \
+    _exit="${1}" \
     _usage_text
   IFS='' \
     read \
@@ -169,20 +180,7 @@ ENDUSAGETEXT
     '%s\n' \
     "${_usage_text}"
   exit \
-    "${1}"
-}
-
-_display_flags() {
-  local \
-    _flags=(
-      "${1}"
-    ) \
-    _flag
-  for _flag \
-    in "${_flags[@]}"; do
-  _msg_info \
-    "                             ${_flag}"
-  done
+    "${_exit}"
 }
 
 # Shows configuration options.
@@ -204,10 +202,6 @@ _show_config() {
 _globals
 _global_variables
 _requirements
-_config_user_init \
-  "$(_get \
-       "app" \
-       "name")"
 # shellcheck disable=SC2034
 while \
   getopts \
@@ -236,11 +230,6 @@ shift \
     OPTIND - 1 \
   ))
 _set_overrides
-_config_user_init \
-  "$( \
-    _get \
-      "app" \
-      "name")"
 _show_config
 app_opts=(
   "$( \
