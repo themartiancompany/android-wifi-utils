@@ -51,35 +51,59 @@ _dumpsys() {
     _cmd=()
   _cmd=(
     dumpsys
+      wifi
   )
   sudo \
     "${_cmd[@]}"
 }
 
 _wifi_tethering_status_get() {
-  _dumpsys_parse \
-    "$(_dumpsys)"
+  local \
+    _dumpsys_out
+  _dumpsys_out="$( \
+    _dumpsys)"
+  if [[ "${_dumpsys_out}" != "" ]]; then
+    _dumpsys_parse \
+      "${_dumpsys_out}"
+  else
+    _msg_error \
+      "empty dumpsys!" \
+      1
+  fi
 }
 
 _dumpsys_parse() {
   local \
-    _dumpsys_out="${1}"
-  _status="$( \
+    _dumpsys_out="${1}" \
+    _tethered_hotspot \
+    _status \
+    _enabled
+  _tethered_hotspot="$( \
     echo \
       "${_dumpsys_out}" | \
       sed \
         -n \
         "/^TetheredHotspot: tid=/p")"
-  # _bsss=(  $( \
-  #   echo \
-  #     "${_bsss_lines}" | \
-  #     awk \
-  #       '{print $2}' | \
-  #       awk \
-  #         -F \
-  #           "(" \
-  #         '{print $1}')
-  # )
+  if [[ "${_tethered_hotspot}" != "" ]]; then
+    _msg_info \
+      "dumpsys: ${_tethered_hotspot}"
+    _enabled="$( \
+      echo \
+        "${_tethered_hotspot}" | \
+        awk \
+          '{print $6}' | \
+          awk \
+            -F \
+              "=" \
+            '{print $2}')"
+    if [[ "${_enabled}" == "true" ]]; then
+      _status="enabled"
+    fi
+  else
+    _status="disabled"
+    echo \
+      "disabled"
+  fi 
   echo \
     "${_status}"
 }
