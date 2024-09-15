@@ -35,17 +35,6 @@ _requirements() {
   fi
 }
 
-_get_conf_dir_path() {
-  local \
-    _dir
-  _dir="${HOME}/.config/$( \
-    _get \
-      "app" \
-      "name")"
-  echo \
-    "${_dir}"
-}
-
 _dumpsys() {
   local \
     _cmd=()
@@ -101,8 +90,6 @@ _dumpsys_parse() {
     fi
   else
     _status="disabled"
-    echo \
-      "disabled"
   fi 
   echo \
     "${_status}"
