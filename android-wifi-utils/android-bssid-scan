@@ -2,9 +2,9 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-_bin="$( \
+_bin="$(
   dirname \
-    "$( \
+    "$(
       command \
         -v \
 	  "env")")"
@@ -54,16 +54,16 @@ _bssids_get() {
       -a
     )
   fi
-  _bssids+=( $( \
+  _bssids+=( $(
     iw-bssid-scan \
       "${_iw_bssid_scan_opts[@]}" \
       "${_device}")
   )
   if [[ "${_bssids[*]}" == "" ]]; then
-    _tethering="$( \
+    _tethering="$(
       wifi-tethering-status)"
     if [[ "${_tethering}" == "enabled" ]]; then
-      _bssids+=( $( \
+      _bssids+=( $(
         _tethering_bssid_get)
       )
     fi
@@ -81,14 +81,14 @@ _tethering_bssid_get() {
     _pattern \
     _dumpsys_out
   _pattern="mCurrentSoftApInfoMap"
-  _dumpsys_out="$( \
+  _dumpsys_out="$(
     _dumpsys)"
-  _bssid_line="$( \
+  _bssid_line="$(
     echo \
       "${_dumpsys_out}" | \
       grep \
         "${_pattern}")" 
-  _bssid="$( \
+  _bssid="$(
     echo \
       "${_bssid_line}" | \
       awk \
@@ -113,7 +113,7 @@ _android_bssid_scan() {
     _device="${1}" \
     _associated_only="${2}" \
     _cmd=()
- _bssids=( $( \
+ _bssids=( $(
    _bssids_get \
     "${_device}" \
     "${_associated_only}")
@@ -155,20 +155,22 @@ _usage() {
       -d '' \
       _usage_text << \
         ENDUSAGETEXT || true
-Returns visible BSSIDs
+
+Returns visible BSSIDs.
 
 Usage:
-  $(_get "app" "name")
+  ${app_name}
 
   options:
      -d                   Target wireless device name.
-                          Default: '$(_get "target" "device")'
+                          Default: '${target_device}'
      -a                   Get only associated bssid.
-                          Default: '$(_get "associated" "only")'
+                          Default: '${associated_only}'
 
      -h                   This message.
      -c                   Enable color output
      -v                   Enable verbose output
+
 ENDUSAGETEXT
   _printf \
     '%s\n' \
@@ -188,9 +190,9 @@ _show_config() {
     '%(%FT%R%z)T' \
     "${SOURCE_DATE_EPOCH}"
   _msg_info "${app_name} configuration"
-  _msg_info "                Call date:   $(_get "_call" "date")"
-  _msg_info "            Target device:   $(_get "target" "device")"
-  _msg_info "          Associated only:   $(_get "associated" "only")"
+  _msg_info "                Call date:   ${_call_date}"
+  _msg_info "            Target device:   ${target_device}"
+  _msg_info "          Associated only:   ${associated_only}"
 }
 
 _globals
@@ -203,37 +205,35 @@ while \
     arg; do
   case \
     "${arg}" in
-    d) override_target_device="${OPTARG}" ;;
-    a) override_associated_only="y" ;;
-    c) override_color="y" ;;
-    v) override_quiet="n" ;;
-    h|?) _set_overrides && \
-         _usage \
-           0 ;;
+    d)
+      override_target_device="${OPTARG}" ;;
+    a)
+      override_associated_only="y" ;;
+    c)
+      override_color="y" ;;
+    v)
+      override_quiet="n" ;;
+    h|?)
+      _set_overrides
+      _usage \
+        0 ;;
     *)
     _msg_error \
       "Invalid argument '${arg}'" \
       0
     _usage \
-      1
-    ;;
+      1 ;;
   esac
 done
 shift \
-  $(( \
+  $((
     OPTIND - 1 \
   ))
 _set_overrides
 _show_config
 app_opts=(
-  "$( \
-    _get \
-      "target" \
-      "device")"
-  "$( \
-    _get \
-      "associated" \
-      "only")"
+  "${target_device}"
+  "${associated_only}"
 )
 _android_bssid_scan \
   "${app_opts[@]}"
