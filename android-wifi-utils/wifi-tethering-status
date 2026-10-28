@@ -1,13 +1,36 @@
 #!/usr/bin/env bash
-#
-# SPDX-License-Identifier: AGPL-3.0-or-later
 
-_bin="$( \
+# SPDX-License-Identifier: AGPL-3.0
+
+#    -----------------------------------------------------
+#    Copyright © 2024, 2025, 2026  Pellegrino Prevete
+#
+#    All rights reserved
+#    -----------------------------------------------------
+#
+#    This program is free software: you can redistribute
+#    it and/or modify it under the terms of the
+#    GNU Affero General Public License as published by
+#    the Free Software Foundation, either version 3 of
+#    the License, or (at your option) any later version.
+#
+#    This program is distributed in the hope that it
+#    will be useful, but WITHOUT ANY WARRANTY;
+#    without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+#    See the GNU Affero General Public License for
+#    more details.
+#
+#    You should have received a copy of the
+#    GNU Affero General Public License
+#    along with this program.
+#    If not, see <https://www.gnu.org/licenses/>.
+
+_bin="$(
   dirname \
-    "$( \
-      command \
-        -v \
-	  "env")")"
+    "$(command \
+         -v \
+         "env")")"
 _lib="${_bin}/../lib"
 source \
   "${_lib}/libcrash-bash/crash-bash"
@@ -23,7 +46,7 @@ _global_variables() {
 _requirements() {
   local \
     _os
-  _os="$( \
+  _os="$(
     uname \
       -o)"
   _check_cmd \
@@ -52,20 +75,20 @@ _dumpsys_parse() {
     _tethered_hotspot \
     _status \
     _enabled
-  _tethered_hotspot="$( \
+  _tethered_hotspot="$(
     echo \
-      "${_dumpsys_out}" | \
+      "${_dumpsys_out}" |
       sed \
         -n \
         "/^TetheredHotspot: tid=/p")"
   if [[ "${_tethered_hotspot}" != "" ]]; then
     _msg_info \
       "dumpsys: ${_tethered_hotspot}"
-    _enabled="$( \
+    _enabled="$(
       echo \
-        "${_tethered_hotspot}" | \
+        "${_tethered_hotspot}" |
         awk \
-          '{print $6}' | \
+          '{print $6}' |
           awk \
             -F \
               "=" \
@@ -123,15 +146,17 @@ _usage() {
       -d '' \
       _usage_text << \
         ENDUSAGETEXT || true
-Returns wifi tethering status
+
+Returns wifi tethering status.
 
 Usage:
-  $(_get "app" "name")
+  ${app_name}
 
   options:
      -h                   This message.
      -c                   Enable color output
      -v                   Enable verbose output
+
 ENDUSAGETEXT
   _printf \
     '%s\n' \
@@ -164,16 +189,14 @@ _show_config() {
     '%(%FT%R%z)T' \
     "${SOURCE_DATE_EPOCH}"
   _msg_info "${app_name} configuration"
-  _msg_info "                Call date:   $(_get "_call" "date")"
+  _msg_info "                Call date:   ${_call_date}"
 }
 
 _globals
 _global_variables
 _requirements
 _config_user_init \
-  "$(_get \
-       "app" \
-       "name")"
+  "${app_name}"
 # shellcheck disable=SC2034
 while \
   getopts \
@@ -181,18 +204,20 @@ while \
     arg; do
   case \
     "${arg}" in
-    c) override_color="y" ;;
-    v) override_quiet="n" ;;
-    h|?) _set_overrides && \
-         _usage \
-           0 ;;
+    c)
+      override_color="y" ;;
+    v)
+      override_quiet="n" ;;
+    h|?)
+      _set_overrides
+      _usage \
+         0 ;;
     *)
-    _msg_error \
-      "Invalid argument '${arg}'" \
-      0
-    _usage \
-      1
-    ;;
+      _msg_error \
+        "Invalid argument '${arg}'" \
+        0
+      _usage \
+        1 ;;
   esac
 done
 shift \
@@ -201,10 +226,7 @@ shift \
   ))
 _set_overrides
 _config_user_init \
-  "$( \
-    _get \
-      "app" \
-      "name")"
+  "${app_name}"
 _show_config
 app_opts=(
 )
